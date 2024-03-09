@@ -1,0 +1,8 @@
+kernel/*.asm 
+kernel/*.d 
+kernel/*.o 
+
+user/*.asm 
+user/*.d 
+user/*.o 
+user/*.sym
