@@ -4,79 +4,61 @@
 #include "kernel/fs.h"
 #define MAX_PATH 512
 
+/*
+Initial thought seems there was confusion about how to 
+correctly implement recursion, 
+especially in avoiding unnecessary openings of directories and files 
+that are not being directly searched for the target file name.
+*/
 void
 find(char* path, char *name)
 {
-    char buf[512], *p;
-    int fd, fdc;
+    char buf[MAX_PATH], *p;
+    int fd;
     struct dirent de;
-    struct stat st, stc;
+    struct stat st;
 
     if((fd = open(path, 0)) < 0) {
-        fprintf(2, "ls: cannot open %s\n", path);
+        fprintf(2, "ERROR: cannot open %s\n", path);
         return;
     }
 
     if(fstat(fd, &st) < 0){
-        fprintf(2, "ls: cannot stat %s\n", path);
+        fprintf(2, "ERROR: cannot stat %s\n", path);
         close(fd);
         return;
     }
 
-  switch (st.type)
-  {
-//   case T_FILE:
-//     if(strcmp(fmtname(path), name))
-//         printf("%s\n", path);
-//     break;
-  case T_DIR:
-    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
-      printf("ls: path too long\n");
-      break;
+    if(st.type != T_DIR) {
+        fprintf(2, "find: %s is not a directory\n", path);
+        close(fd);
+        return;
     }
+
     strcpy(buf, path);
     p = buf+strlen(buf);
     *p++ = '/';
+
     while(read(fd, &de, sizeof(de)) == sizeof(de)) {
         if(de.inum == 0)
             continue;
-        if(strcmp(de.name, ".") == 1 || strcmp(de.name, "..") == 1)
+
+        memmove(p, de.name, DIRSIZ);
+        p[DIRSIZ] = 0;
+
+        if(stat(buf, &st) < 0) {
+            fprintf(2, "ERROR: cannot stat %s\n", buf);
+            close(fd);
             continue;
-
-        if(strcmp(de.name, name) == 1) {
-            memmove(p, de.name, DIRSIZ);
-            p[DIRSIZ] = 0;
+        }
+        
+        if(st.type == T_FILE && strcmp(de.name, name) == 0) {
             printf("%s\n", buf);
-            break;
-        }
-
-        if((fdc = open(buf, 0) < 0)) {
-            fprintf(2, "ls: cannot open %s\n", buf);
-            return;
-        }
-
-        if(fstat(fdc, &stc) < 0){
-            fprintf(2, "ls: cannot stat %s\n", path);
-            close(fdc);
-            return;
-        }
-
-        switch(stc.type)
-        {
-        case T_DIR:
-            /* code */
-            *p = 0;
-            find(buf, name);
-            close(fdc);
-            break;
-        case T_FILE:
-            close(fdc);
-            break;
+        } else if(st.type == T_DIR && strcmp(de.name, ".") != 0 && strcmp(de.name, "..") != 0) {
+            find(buf, name); // Recurse at new path
         }
     }
-    break;
-  }
-  close(fd);
+    close(fd);
 }
 
 int
@@ -89,6 +71,4 @@ main(int argc, char *argv[])
 
     find(argv[1], argv[2]);
     exit(0);
-
 }
-
