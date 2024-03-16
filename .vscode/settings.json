@@ -59,6 +59,7 @@
   "files.associations": {
     "user.h": "c",
     "stat.h": "c",
-    "type_traits": "c"
+    "type_traits": "c",
+    "fs.h": "c"
   }
 }
