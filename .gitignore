@@ -8,6 +8,8 @@ user/*.o
 user/*.sym
 user/_*
 
+*img
+
 # Prerequisites
 *.d
 

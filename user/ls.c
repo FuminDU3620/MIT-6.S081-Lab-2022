@@ -6,6 +6,15 @@
 char*
 fmtname(char *path)
 {
+  /*
+    当函数返回时，局部变量的内存空间可能被重用，
+    但只有当新的函数调用需要更多的栈空间时才会发生。
+    因此，返回的指针仍然指向分配给数组的内存空间，
+    但不能保证该内存空间中的数据的有效性。
+    静态局部变量使用static修饰符定义，即使在声明时未赋初值，
+    编译器也会把它初始化为0。且静态局部变量存储于进程的全局数据区，
+    即使函数返回，它的值也会保持不变。
+    */
   static char buf[DIRSIZ+1];
   char *p;
 
@@ -53,16 +62,18 @@ ls(char *path)
     }
     strcpy(buf, path);
     p = buf+strlen(buf);
+    // printf("buffer1: %s\n", buf);
     *p++ = '/';
     while(read(fd, &de, sizeof(de)) == sizeof(de)){
       if(de.inum == 0)
         continue;
-      memmove(p, de.name, DIRSIZ);
+      memmove(p, de.name, DIRSIZ); // chanege buffer
       p[DIRSIZ] = 0;
       if(stat(buf, &st) < 0){
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
+      // printf("buffer2: %s\n", buf);
       printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
     }
     break;
